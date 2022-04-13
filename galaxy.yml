@@ -1,0 +1,25 @@
+---
+namespace: cisco
+name: ndi
+# The version of the collection. Must be compatible with semantic versioning
+version: 0.0.1
+readme: README.md
+authors:
+- Cindy Zhao (@cizhao)
+description: An Ansible collection for managing Cisco Nexus Dashboard Insights
+license_file: 'LICENSE'
+tags: 
+- cisco
+- aci
+- cloud
+- collection
+- networking
+- sdn
+- ndi
+- multisite
+dependencies:
+  "cisco.nd": "*"
+repository: https://github.com/CiscoDevNet/ansible-ndi
+documentation: https://docs.ansible.com/ansible/latest/scenario_guides/guide_ndi.html
+homepage: https://cisco.com/go/ndi
+issues: https://github.com/CiscoDevNet/ansible-ndi/issues
