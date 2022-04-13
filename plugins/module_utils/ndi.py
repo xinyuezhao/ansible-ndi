@@ -322,10 +322,18 @@ class NDIModule(object):
 
     def get_site_id(self, path, site_name):
         obj = self.query_obj(path)
-        for site in obj['body']['value']['data'][0]['assuranceEntities']:
+        for site in obj['value']['data'][0]['assuranceEntities']:
             if site['name'] == site_name:
                 return site['uuid']
 
-    def get_pcv(self, path, **kwargs):
+    def get_epoch_job_id(self, path, **kwargs):
         obj = self.query_obj(path, qs=True, **kwargs)
-        return obj['body']
+        return obj['value']['data'][1]['epochDeltaJobId']
+
+    def get_epochs(self, path, **kwargs):
+        obj = self.query_obj(path, qs=True, **kwargs)
+        return obj['value']['data'][0]
+
+    def get_pre_change_result(self, path):
+        obj = self.query_obj(path)
+        return obj["value"]["data"]

@@ -45,7 +45,7 @@ options:
     description:
     - Optional parameter if creating new pre-change analysis from file.
     type: str
-  changes:
+  manual:
     description:
     - Optional parameter if creating new pre-change analysis from change-list (manual)
     type: str
@@ -80,7 +80,7 @@ def main():
         description=dict(type='str'),
         site_name=dict(type='str'),
         file=dict(type='str'),
-        changes=dict(type='str'),
+        manual=dict(type='str'),
         state=dict(type='str', default='query', choices=['query']),
     )
 
@@ -97,10 +97,25 @@ def main():
     name = ndi.params.get("name")
     site_name = ndi.params.get('site_name')
     ig_name = ndi.params.get('ig_name')
+    description = ndi.params.get('description')
+    file = ndi.params.get('file')
+    manual = ndi.params.get('manual')
 
     path = 'config/insightsGroup'
     site = ndi.get_site_id(path, site_name)
 
-# {0}/prechangeAnalysis?$sort=-analysisSubmissionTime&fabricId={1}".format(ig_name, site_id)
+    # get latest pre-change analysis
     pcv_path = '{0}/{1}/prechangeAnalysis'.format(path, ig_name)
-    pcas = ndi.get_pcv(pcv_path, sort="-analysisSubmissionTime", fabricId=site)
+    epoch_delta_job_id = ndi.get_epoch_job_id(pcv_path, sort="-analysisSubmissionTime", fabricId=site)
+    pcv_result_path = 'epochDelta/insightsGroup/{0}/fabric/{1}/job/{2}/health/view/eventSeverity'.format(ig_name, site_name, epoch_delta_job_id)
+    ndi.existing = ndi.get_pre_change_result(pcv_result_path)
+
+    # if state == 'present' and file:
+
+        # epoch_path = 'events/insightsGroup/{0}/fabric/{1}/epochs'.format(ig_name, site_name)
+        # status=FINISHED&$sort=-collectionTime%2C-analysisStartTime&$page=0&$size=1&$epochType=ONLINE%2C+OFFLINE
+        # epoch = ndi.get_epochs(path)
+
+
+if __name__ == "__main__":
+    main()
