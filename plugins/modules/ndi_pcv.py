@@ -102,20 +102,24 @@ def main():
     manual = ndi.params.get('manual')
 
     path = 'config/insightsGroup'
-    site = ndi.get_site_id(path, site_name)
+    # site_id = ndi.get_site_id(path, site_name)
 
-    # get latest pre-change analysis
-    pcv_path = '{0}/{1}/prechangeAnalysis'.format(path, ig_name)
-    epoch_delta_job_id = ndi.get_epoch_job_id(pcv_path, sort="-analysisSubmissionTime", fabricId=site)
-    pcv_result_path = 'epochDelta/insightsGroup/{0}/fabric/{1}/job/{2}/health/view/eventSeverity'.format(ig_name, site_name, epoch_delta_job_id)
-    ndi.existing = ndi.get_pre_change_result(pcv_result_path)
+    pcvs_path = '{0}/{1}/prechangeAnalysis'.format(path, ig_name)
+    pcv_results = ndi.get_pcv_results(pcvs_path, sort="-analysisSubmissionTime")
+    # pcv_result_path = 'epochDelta/insightsGroup/{0}/fabric/{1}/job/{2}/health/view/eventSeverity'.format(ig_name, site_name, epoch_delta_job_id)
+    ndi.existing = pcv_results
+    if name is not None and site_name is not None:
+        site_id = ndi.get_site_id(path, site_name)
+        pcv_path = '{0}/{1}/fabric/{2}/prechangeAnalysis'.format(path, ig_name, site_name)
+        ndi.existing = ndi.get_pre_change_result(pcv_results, name, site_id, pcv_path)
 
-    # if state == 'present' and file:
+    if state == 'query':
+        ndi.exit_json()
 
         # epoch_path = 'events/insightsGroup/{0}/fabric/{1}/epochs'.format(ig_name, site_name)
         # status=FINISHED&$sort=-collectionTime%2C-analysisStartTime&$page=0&$size=1&$epochType=ONLINE%2C+OFFLINE
         # epoch = ndi.get_epochs(path)
 
-
+    ndi.exit_json()
 if __name__ == "__main__":
     main()

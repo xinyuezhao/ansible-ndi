@@ -326,14 +326,20 @@ class NDIModule(object):
             if site['name'] == site_name:
                 return site['uuid']
 
-    def get_epoch_job_id(self, path, **kwargs):
+    def get_pcv_results(self, path, **kwargs):
         obj = self.query_obj(path, qs=True, **kwargs)
-        return obj['value']['data'][1]['epochDeltaJobId']
+        return obj['value']['data']
+
+    def get_pre_change_result(self, pcv_results, name, site_id, path):
+        for pcv in pcv_results:
+            if pcv.get("name") == name and pcv.get("fabricUuid") == site_id:
+                pcv_job_id = pcv.get("jobId")
+                pcv_path = '{0}/{1}'.format(path, pcv_job_id)
+                obj = self.query_obj(pcv_path)
+        return obj['value']['date']
 
     def get_epochs(self, path, **kwargs):
         obj = self.query_obj(path, qs=True, **kwargs)
         return obj['value']['data'][0]
 
-    def get_pre_change_result(self, path):
-        obj = self.query_obj(path)
-        return obj["value"]["data"]
+
