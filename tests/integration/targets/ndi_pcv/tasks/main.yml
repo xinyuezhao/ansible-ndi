@@ -1,0 +1,22 @@
+# Test code for the NDI modules
+# Copyright: (c) 2022, Cindy Zhao (@cizhao) <cizhao@cisco.com>
+
+# GNU General Public License v3.0+ (see LICENSE or https://www.gnu.org/licenses/gpl-3.0.txt)
+
+- name: Test that we have an Nexus Dashboard host, username and password
+  fail:
+    msg: 'Please define the following variables: ndi_hostname, ndi_username and ndi_password.'
+  when: nd_hostname is not defined or nd_username is not defined or nd_password is not defined
+
+# CLEAN ENVIRONMENT
+- name: Set vars
+  set_fact:
+    ndi_info: &ndi_info
+      output_level: '{{ nd_output_level | default("info") }}'
+
+# QUERY pre-change results
+- name: Query Pre-Change analysis
+  cisco.ndi.ndi_pcv: &ndi_query
+    <<: *ndi_info
+    state: query
+  register: nm_query_pcvs
