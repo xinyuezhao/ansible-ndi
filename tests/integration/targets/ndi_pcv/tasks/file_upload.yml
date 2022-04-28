@@ -14,7 +14,7 @@
     ig_name: day2ops-tme
     site_name: prod-fabric
     name: pcv_by_file
-    file: targets/ndi_pcv/tasks/out-ospf-to-l2vrf.json
+    file: /root/ansible_collections/cisco/ndi/tests/integration/targets/ndi_pcv/tasks/out-ospf-to-l2vrf.json
     state: present
   register: present_pcv
 
@@ -24,7 +24,7 @@
     ig_name: day2ops-tme
     site_name: prod-fabric
     name: pcv_non_existing
-    file: targets/ndi_pcv/tasks/non-existing.json
+    file: /root/ansible_collections/cisco/ndi/tests/integration/targets/ndi_pcv/tasks/non-existing.json
     state: present
   register: present_pcv
   ignore_errors: True
