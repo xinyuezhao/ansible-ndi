@@ -17,14 +17,13 @@
     file: targets/ndi_pcv/tasks/out-ospf-to-l2vrf.json
     state: present
   register: present_pcv
-  ignore_errors: True
 
 - name: Create a new Pre-Change analysis from non-existing file
   cisco.ndi.ndi_pcv:
     <<: *ndi_present
     ig_name: day2ops-tme
     site_name: prod-fabric
-    name: pcv_by_file
+    name: pcv_non_existing
     file: targets/ndi_pcv/tasks/non-existing.json
     state: present
   register: present_pcv
