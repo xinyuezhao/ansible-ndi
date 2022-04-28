@@ -8,15 +8,6 @@ from __future__ import (absolute_import, division, print_function)
 # from matplotlib.font_manager import json_dump, json_load
 __metaclass__ = type
 
-from copy import deepcopy
-import re
-import os
-import ast
-import datetime
-import shutil
-import tempfile
-import time
-from xml.dom import minidom
 # from jsonpath_ng import parse
 from ansible.module_utils.basic import json
 from ansible.module_utils.basic import env_fallback
@@ -67,7 +58,7 @@ class NDIModule(object):
         self.previous = dict()
         self.proposed = dict()
         self.sent = dict()
-        self.stdout = 'start'
+        self.stdout = ''
 
         # debug output
         self.has_modified = False
@@ -178,7 +169,6 @@ class NDIModule(object):
         self.connection.set_params(self.params)
         if api_version is not None:
             uri = '/sedgeapi/v1/cisco-nir/api/api/telemetry/{0}/{1}'.format(api_version, self.path)
-            # uri = '/mso/api/{0}/{1}'.format(api_version, self.path)
         else:
             uri = self.path
 
@@ -186,17 +176,10 @@ class NDIModule(object):
             uri = uri + update_qs(qs)
 
         try:
-            # self.stdout = self.stdout + 'method is ' + method
-            # self.stdout = self.stdout + 'uri is ' + uri
-            # self.stdout = self.stdout + 'data is ' + json.dumps(data)
             if file is not None:
-                self.stdout = self.stdout + 'use send_file_request \n'
                 info = self.connection.send_file_request(method, uri, file, data)
-                self.stdout = self.stdout + 'finish send_file_request \n'
             else:
-                self.stdout = self.stdout + 'use send_request \n'
                 info = self.connection.send_request(method, uri, json.dumps(data))
-                self.stdout = self.stdout + 'finish send_request \n'
             self.url = info.get('url')
             info.pop('date')
         except Exception as e:
@@ -272,17 +255,6 @@ class NDIModule(object):
                 self.fail_json(msg=msg)
             return {}
 
-    # def get_site(self, ig_name, site_name):
-    # uri = "/sedgeapi/v1/cisco-nir/api/api/telemetry/v2/config/insightsGroup?insightsGroupName={0}".format(ig_name)
-    # obj = self.connection.send_request("GET", uri,)
-    # if obj['status'] != 200:
-    #     self.module.fail_json(
-    #         msg=obj,
-    #         **self.result)
-    # for site in obj['body']['value']['data'][0]['assuranceEntities']:
-    #     if site['name'] == site_name:
-    #         return site
-
     def query_obj(self, path, qs=False, **kwargs):
         ''' Query the NDI REST API for the whole object at a path '''
         if qs:
@@ -297,39 +269,6 @@ class NDIModule(object):
             if obj.get(kw_key) != kw_value:
                 return {}
         return obj
-
-    # def query_objs(self, path, key=None, **kwargs):
-    #     ''' Query the ND REST API for objects in a path '''
-    #     found = []
-    #     objs = self.request(path, method='GET')
-
-    #     if objs == {}:
-    #         return found
-
-    #     if key is None:
-    #         key = path
-
-    #     if key not in objs:
-    #         self.fail_json(msg="Key '{0}' missing from data".format(objs))
-
-    #     for obj in objs.get(key):
-    #         for kw_key, kw_value in kwargs.items():
-    #             if kw_value is None:
-    #                 continue
-    #             if obj.get(kw_key) != kw_value:
-    #                 break
-    #         else:
-    #             found.append(obj)
-    #     return found
-
-    # def get_obj(self, path, **kwargs):
-    #     ''' Get a specific object from a set of ND REST objects '''
-    #     objs = self.query_objs(path, **kwargs)
-    #     if len(objs) == 0:
-    #         return {}
-    #     if len(objs) > 1:
-    #         self.fail_json(msg='More than one object matches unique filter: {0}'.format(kwargs))
-    #     return objs[0]
 
     def get_site_id(self, path, site_name):
         obj = self.query_obj(path)

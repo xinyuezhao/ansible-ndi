@@ -5,7 +5,6 @@
 
 from __future__ import absolute_import, division, print_function
 import json
-import mimetypes
 import os
 import time
 __metaclass__ = type
@@ -106,15 +105,10 @@ def main():
     manual = ndi.params.get('manual')
 
     path = 'config/insightsGroup'
-    # site_id = ndi.get_site_id(path, site_name)
-    # $sort=-analysisSubmissionTime
     pcvs_path = '{0}/{1}/prechangeAnalysis?$sort=-analysisSubmissionTime'.format(path, ig_name)
     pcv_results = ndi.get_pcv_results(pcvs_path)
-    ndi.stdout = 'test stdout \n'
-    # pcv_result_path = 'epochDelta/insightsGroup/{0}/fabric/{1}/job/{2}/health/view/eventSeverity'.format(ig_name, site_name, epoch_delta_job_id)
     ndi.existing = pcv_results
     if name is not None and site_name is not None:
-        ndi.stdout = ndi.stdout + "test while in condition \n"
         site_id = ndi.get_site_id(path, site_name)
         pcv_path = '{0}/{1}/fabric/{2}/prechangeAnalysis'.format(path, ig_name, site_name)
         ndi.existing = ndi.get_pre_change_result(pcv_results, name, site_id, pcv_path)
@@ -131,8 +125,6 @@ def main():
             else:
                 rm_path = '{0}/{1}/prechangeAnalysis/jobs'.format(path, ig_name)
                 rm_payload = [job_id]
-                ndi.stdout = ndi.stdout + 'rm payload is ' + str(rm_payload)
-                ndi.stdout = ndi.stdout + 'rm path is ' + rm_path
                 ndi.existing = ndi.request(rm_path, method='POST', data=rm_payload)
 
     elif state == 'present':
@@ -151,34 +143,12 @@ def main():
             "description": description,
             "name": name,
             "assuranceEntityName": site_name,
-            # "uploadedFileName": file
         }
         if file:
             if not os.path.exists(file):
                 ndi.fail_json(msg="File not found : {0}".format(file))
-            # f = open(file)
-            # change = json.load(f)
-            # data["imdata"] = change['imdata']
 
-            # data["uploadedFileName"] = os.path.basename(file)
-            # with open('data.json', 'w') as data_file:
-            #     json.dump(data, data_file)
-
-            # files = [
-            #     ('data', ('data.json', open('data.json', 'r'), 'application/json')),
-            #     ('file', (os.path.basename(file), open(
-            #         file, 'r'), mimetypes.guess_type(file)))
-            # ]
-            # files = file
-            # m = MultipartEncoder(fields=files)
-
-            # # Need to set the right content type for the multi part upload!
-            # h = ndi.headers.copy()
-            # h['Content-Type'] = m.content_type
-
-            ndi.stdout = ndi.stdout + str(os.getcwd()) + '\n'
             create_pcv_path = '{0}/{1}/fabric/{2}/prechangeAnalysis/fileChanges'.format(path, ig_name, site_name)
-            # self.connection.send(path, data, method=method, headers=self.headers)
             ndi.existing = ndi.request(create_pcv_path, method='POST', file=file, data=data)
         if manual:
             data["imdata"] = json.loads(manual)
