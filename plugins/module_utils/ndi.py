@@ -4,9 +4,8 @@
 # Simplified BSD License (see licenses/simplified_bsd.txt or https://opensource.org/licenses/BSD-2-Clause)
 
 from __future__ import (absolute_import, division, print_function)
-from flask import request
 
-from matplotlib.font_manager import json_dump, json_load
+# from matplotlib.font_manager import json_dump, json_load
 __metaclass__ = type
 
 from copy import deepcopy
@@ -18,7 +17,7 @@ import shutil
 import tempfile
 import time
 from xml.dom import minidom
-from jsonpath_ng import parse
+# from jsonpath_ng import parse
 from ansible.module_utils.basic import json
 from ansible.module_utils.basic import env_fallback
 from ansible.module_utils.six import PY3
@@ -40,7 +39,9 @@ if PY3:
         return (a > b) - (a < b)
 
 def ndi_argument_spec():
-    return dict()
+    return dict(
+        output_level=dict(type='str', default='info', choices=['debug', 'info', 'normal'])
+    )
 
 def update_qs(params):
     ''' Append key-value pairs to self.filter_string '''
@@ -53,7 +54,7 @@ class NDIModule(object):
         self.module = module
         self.params = module.params
         self.result = dict(changed=False)
-        self.headers = {'Content-Type': 'text/json'}
+        self.headers = {'Content-Type': 'application/json'}
 
         # normal output
         self.existing = dict()
@@ -66,7 +67,7 @@ class NDIModule(object):
         self.previous = dict()
         self.proposed = dict()
         self.sent = dict()
-        self.stdout = None
+        self.stdout = 'start'
 
         # debug output
         self.has_modified = False
@@ -150,7 +151,7 @@ class NDIModule(object):
         self.result.update(**kwargs)
         self.module.fail_json(msg=msg, **self.result)
 
-    def request(self, path, method=None, data=None, qs=None, api_version="v2"):
+    def request(self, path, method=None, data=None, qs=None, file=None, api_version="v2"):
         ''' Generic HTTP method for NDI requests. '''
         self.path = path
 
@@ -185,7 +186,17 @@ class NDIModule(object):
             uri = uri + update_qs(qs)
 
         try:
-            info = self.connection.send_request(method, uri, json.dumps(data))
+            # self.stdout = self.stdout + 'method is ' + method
+            # self.stdout = self.stdout + 'uri is ' + uri
+            # self.stdout = self.stdout + 'data is ' + json.dumps(data)
+            if file is not None:
+                self.stdout = self.stdout + 'use send_file_request \n'
+                info = self.connection.send_file_request(method, uri, file, data)
+                self.stdout = self.stdout + 'finish send_file_request \n'
+            else:
+                self.stdout = self.stdout + 'use send_request \n'
+                info = self.connection.send_request(method, uri, json.dumps(data))
+                self.stdout = self.stdout + 'finish send_request \n'
             self.url = info.get('url')
             info.pop('date')
         except Exception as e:
@@ -194,7 +205,7 @@ class NDIModule(object):
             except Exception:
                 error_obj = dict(error=dict(
                     code=-1,
-                    message="Unable to parse error output as JSON. Raw error message: {0}".format(e),
+                    message="NDI Unable to parse error output as JSON. Raw error message: {0}".format(e),
                     exception=to_text(e)
                 ))
                 pass
@@ -327,19 +338,21 @@ class NDIModule(object):
                 return site['uuid']
 
     def get_pcv_results(self, path, **kwargs):
-        obj = self.query_obj(path, qs=True, **kwargs)
+        obj = self.query_obj(path, **kwargs)
         return obj['value']['data']
 
     def get_pre_change_result(self, pcv_results, name, site_id, path):
+        pcv_result = {}
         for pcv in pcv_results:
             if pcv.get("name") == name and pcv.get("fabricUuid") == site_id:
                 pcv_job_id = pcv.get("jobId")
                 pcv_path = '{0}/{1}'.format(path, pcv_job_id)
                 obj = self.query_obj(pcv_path)
-        return obj['value']['date']
+                pcv_result = obj['value']['data']
+        return pcv_result
 
     def get_epochs(self, path, **kwargs):
-        obj = self.query_obj(path, qs=True, **kwargs)
+        obj = self.query_obj(path, **kwargs)
         return obj['value']['data'][0]
 
 

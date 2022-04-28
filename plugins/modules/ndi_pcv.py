@@ -4,6 +4,10 @@
 # Simplified BSD License (see licenses/simplified_bsd.txt or https://opensource.org/licenses/BSD-2-Clause)
 
 from __future__ import absolute_import, division, print_function
+import json
+import mimetypes
+import os
+import time
 __metaclass__ = type
 
 ANSIBLE_METADATA = {'metadata_version': '1.1',
@@ -30,7 +34,6 @@ options:
     description:
     - The name of the pre-change validation.
     type: str
-    required: yes
   description:
     description:
     - Description for the pre-change validation.
@@ -61,6 +64,7 @@ extends_documentation_fragment: cisco.ndi.modules
 EXAMPLES = r'''
 - name: Get prechange validation result
   cisco.ndi.ndi_pcv:
+    ig_name: exampleIG
     state: query
   delegate_to: localhost
   register: query_result
@@ -75,20 +79,20 @@ from ansible_collections.cisco.ndi.plugins.module_utils.ndi import NDIModule, nd
 def main():
     argument_spec = ndi_argument_spec()
     argument_spec.update(
-        ig_name=dict(type='str'),
+        ig_name=dict(type='str', required=True),
         name=dict(type='str'),
         description=dict(type='str'),
         site_name=dict(type='str'),
         file=dict(type='str'),
         manual=dict(type='str'),
-        state=dict(type='str', default='query', choices=['query']),
+        state=dict(type='str', default='query', choices=['query', 'absent', 'present']),
     )
 
     module = AnsibleModule(
         argument_spec=argument_spec,
         supports_check_mode=True,
-        required_if=[['state', 'absent', ['name']],
-                     ['state', 'present', ['name']]]
+        required_if=[['state', 'absent', ['name'], ['site_name']],
+                     ['state', 'present', ['name'], ['site_name']]]
     )
 
     ndi = NDIModule(module)
@@ -103,23 +107,83 @@ def main():
 
     path = 'config/insightsGroup'
     # site_id = ndi.get_site_id(path, site_name)
-
-    pcvs_path = '{0}/{1}/prechangeAnalysis'.format(path, ig_name)
-    pcv_results = ndi.get_pcv_results(pcvs_path, sort="-analysisSubmissionTime")
+    # $sort=-analysisSubmissionTime
+    pcvs_path = '{0}/{1}/prechangeAnalysis?$sort=-analysisSubmissionTime'.format(path, ig_name)
+    pcv_results = ndi.get_pcv_results(pcvs_path)
+    ndi.stdout = 'test stdout \n'
     # pcv_result_path = 'epochDelta/insightsGroup/{0}/fabric/{1}/job/{2}/health/view/eventSeverity'.format(ig_name, site_name, epoch_delta_job_id)
     ndi.existing = pcv_results
     if name is not None and site_name is not None:
+        ndi.stdout = ndi.stdout + "test while in condition \n"
         site_id = ndi.get_site_id(path, site_name)
         pcv_path = '{0}/{1}/fabric/{2}/prechangeAnalysis'.format(path, ig_name, site_name)
         ndi.existing = ndi.get_pre_change_result(pcv_results, name, site_id, pcv_path)
 
     if state == 'query':
-        ndi.exit_json()
+        pass
 
-        # epoch_path = 'events/insightsGroup/{0}/fabric/{1}/epochs'.format(ig_name, site_name)
-        # status=FINISHED&$sort=-collectionTime%2C-analysisStartTime&$page=0&$size=1&$epochType=ONLINE%2C+OFFLINE
-        # epoch = ndi.get_epochs(path)
+    elif state == 'absent':
+        ndi.previous = ndi.existing
+        job_id = ndi.existing.get('jobId')
+        if ndi.existing and job_id:
+            if module.check_mode:
+                ndi.existing = {}
+            else:
+                rm_path = '{0}/{1}/prechangeAnalysis/jobs'.format(path, ig_name)
+                rm_payload = [job_id]
+                ndi.stdout = ndi.stdout + 'rm payload is ' + str(rm_payload)
+                ndi.stdout = ndi.stdout + 'rm path is ' + rm_path
+                ndi.existing = ndi.request(rm_path, method='POST', data=rm_payload)
 
+    elif state == 'present':
+        ndi.previous = ndi.existing
+        if ndi.existing:
+            ndi.exit_json()
+        epoch_path = 'events/insightsGroup/{0}/fabric/{1}/epochs?$size=1&$status=FINISHED'.format(ig_name, site_name)
+        base_epoch_data = ndi.get_epochs(epoch_path)
+
+        data = {
+            "allowUnsupportedObjectModification": "true",
+            "analysisSubmissionTime": round(time.time() * 1000),
+            "baseEpochId": base_epoch_data["epochId"],
+            "baseEpochCollectionTimestamp": base_epoch_data["collectionTimeMsecs"],
+            "fabricUuid": base_epoch_data["fabricId"],
+            "description": description,
+            "name": name,
+            "assuranceEntityName": site_name,
+            # "uploadedFileName": file
+        }
+        if file:
+            if not os.path.exists(file):
+                ndi.fail_json(msg="File not found : {0}".format(file))
+            # f = open(file)
+            # change = json.load(f)
+            # data["imdata"] = change['imdata']
+
+            # data["uploadedFileName"] = os.path.basename(file)
+            # with open('data.json', 'w') as data_file:
+            #     json.dump(data, data_file)
+
+            # files = [
+            #     ('data', ('data.json', open('data.json', 'r'), 'application/json')),
+            #     ('file', (os.path.basename(file), open(
+            #         file, 'r'), mimetypes.guess_type(file)))
+            # ]
+            # files = file
+            # m = MultipartEncoder(fields=files)
+
+            # # Need to set the right content type for the multi part upload!
+            # h = ndi.headers.copy()
+            # h['Content-Type'] = m.content_type
+
+            ndi.stdout = ndi.stdout + str(os.getcwd()) + '\n'
+            create_pcv_path = '{0}/{1}/fabric/{2}/prechangeAnalysis/fileChanges'.format(path, ig_name, site_name)
+            # self.connection.send(path, data, method=method, headers=self.headers)
+            ndi.existing = ndi.request(create_pcv_path, method='POST', file=file, data=data)
+        if manual:
+            data["imdata"] = json.loads(manual)
+            create_pcv_path = '{0}/{1}/fabric/{2}/prechangeAnalysis/manualChanges?action=RUN'.format(path, ig_name, site_name)
+            ndi.existing = ndi.request(create_pcv_path, method='POST', data=data)
     ndi.exit_json()
 if __name__ == "__main__":
     main()
