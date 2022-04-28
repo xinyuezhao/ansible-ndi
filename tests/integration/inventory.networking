@@ -1,9 +1,10 @@
 [ndi]
-ndi ndi_hostname="172.31.218.113" ndi_username="admin" ndi_password="ins3965!" ansible_host="172.31.218.113" ansible_user="admin" ansible_ssh_pass="ins3965!"
+ndi ndi_hostname="172.31.218.113" ansible_host="172.31.218.113" ansible_user="admin" ansible_ssh_pass="ins3965!"
 
-[nd:vars]
+[ndi:vars]
 ansible_connection=ansible.netcommon.httpapi
 ansible_network_os=cisco.nd.nd
 ansible_httpapi_validate_certs=False
 ansible_httpapi_use_ssl=True
+ansible_python_interpreter=/usr/bin/python3.8
 
