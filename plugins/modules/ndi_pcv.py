@@ -174,7 +174,11 @@ def main():
             else:
                 rm_path = '{0}/{1}/prechangeAnalysis/jobs'.format(path, ig_name)
                 rm_payload = [job_id]
-                ndi.existing = ndi.request(rm_path, method='POST', data=rm_payload)
+                rm_resp = ndi.request(rm_path, method='POST', data=rm_payload)
+                if rm_resp["success"] == True:
+                    ndi.existing = {}
+                else:
+                    ndi.fail_json(msg="Pre-change validation {0} is not able to be deleted".format(name))
 
     elif state == 'present':
         ndi.previous = ndi.existing
@@ -198,11 +202,15 @@ def main():
                 ndi.fail_json(msg="File not found : {0}".format(file))
 
             create_pcv_path = '{0}/{1}/fabric/{2}/prechangeAnalysis/fileChanges'.format(path, ig_name, site_name)
-            ndi.existing = ndi.request(create_pcv_path, method='POST', file=file, data=data)
+            file_resp = ndi.request(create_pcv_path, method='POST', file=file, data=data)
+            if file_resp.get("success") == True:
+                ndi.existing = file_resp.get("value")["data"]
         if manual:
             data["imdata"] = json.loads(manual)
             create_pcv_path = '{0}/{1}/fabric/{2}/prechangeAnalysis/manualChanges?action=RUN'.format(path, ig_name, site_name)
-            ndi.existing = ndi.request(create_pcv_path, method='POST', data=data)
+            manual_resp = ndi.request(create_pcv_path, method='POST', data=data)
+            if manual_resp.get("success") == True:
+                ndi.existing = manual_resp.get("value")["data"]
     ndi.exit_json()
 if __name__ == "__main__":
     main()
