@@ -66,7 +66,56 @@ EXAMPLES = r'''
     ig_name: exampleIG
     state: query
   delegate_to: localhost
+  register: query_results
+
+- name: Get a specific prechange validation result
+  cisco.ndi.ndi_pcv:
+    ig_name: exampleIG
+    site_name: siteName
+    name: demoName
+    state: query
+  delegate_to: localhost
   register: query_result
+
+- name: Create a new Pre-Change analysis from file
+  cisco.ndi.ndi_pcv:
+    ig_name: igName
+    site_name: siteName
+    name: demoName
+    file: configFilePath
+    state: present
+  delegate_to: localhost
+  register: present_pcv
+
+- name: Present Pre-Change analysis from manual changes
+  cisco.ndi.ndi_pcv:
+    ig_name: idName
+    site_name: SiteName
+    name: demoName
+    manual: |
+        [
+            {
+              "fvTenant": {
+                "attributes": {
+                  "name": "AnsibleTest",
+                  "dn": "uni/tn-AnsibleTest",
+                  "status": "deleted"
+                }
+              }
+            }
+        ]
+    state: present
+  delegate_to: localhost
+  register: present_pcv_manual
+
+- name: Delete Pre-Change analysis
+  cisco.ndi.ndi_pcv:
+    ig_name: igName
+    site_name: siteName
+    name: demoName
+    state: absent
+  delegate_to: localhost
+  register: rm_pcv
 '''
 
 RETURN = r'''
